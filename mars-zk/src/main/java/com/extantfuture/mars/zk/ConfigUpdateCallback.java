@@ -1,4 +1,8 @@
-package com.extantfuture.mars.config;
+/*
+ * Copyright (c) 2017. ExtantFuture Inc. All Rights Reserved
+ */
+
+package com.extantfuture.mars.zk;
 
 /**
  * callback for config update

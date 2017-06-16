@@ -1,5 +1,6 @@
-package com.extantfuture.mars.config;
+package com.extantfuture.mars.zk;
 
+import com.extantfuture.mars.config.ConfigManager;
 import com.extantfuture.mars.config.gray.GrayConfigManager;
 import com.extantfuture.mars.util.CollectionUtil;
 import com.extantfuture.mars.util.EnvUtil;
