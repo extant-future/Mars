@@ -21,10 +21,11 @@ public class ConfigManager {
 
 	private static final Logger LOG = Logger.getLogger(ConfigManager.class.getSimpleName());
 
-	// 本地缓存的所有配置项
+	// local memory cache to hold all config items
 	private static final Map<String, Map<String, String>> configLocalMap = new HashMap<String, Map<String, String>>();
 
 	/**
+	 * get config item's string value by key in config file
 	 * 查询配置(本地缓存)
 	 *
 	 * @param configFileName
@@ -43,6 +44,7 @@ public class ConfigManager {
 	}
 
 	/**
+	 * get config item's string value with default by key in config file
 	 * 查询配置(本地缓存)
 	 *
 	 * @param configFileName
@@ -59,6 +61,100 @@ public class ConfigManager {
 	}
 
 	/**
+	 * get config item's string value with default by key in config file
+	 * 查询配置(本地缓存)
+	 *
+	 * @param configName    格式： configFileName.key
+	 *                      <p>
+	 *                      如： league_type_category.league_config
+	 * @param defaultConfig 默认配置
+	 * @return
+	 */
+	public static String getConfigWithDefault(String configName, String defaultConfig) {
+		String value = getConfig(configName);
+		if (!StringUtil.isNotEmpty(value)) {
+			value = defaultConfig;
+		}
+		return value;
+	}
+
+	/**
+	 * get config item's boolean value with default by key in config file
+	 *
+	 * @param configName
+	 * @param defaultConfig
+	 * @return
+	 */
+	public static boolean getBooleanConfig(String configName, boolean defaultConfig) {
+		String value = getConfig(configName);
+		if (StringUtil.isNotEmpty(value)) {
+			return StringUtil.convertBoolean(value, defaultConfig);
+		}
+		return defaultConfig;
+	}
+
+	/**
+	 * get config item's double value with default by key in config file
+	 *
+	 * @param configName
+	 * @param defaultConfig
+	 * @return
+	 */
+	public static double getDouebleConfig(String configName, double defaultConfig) {
+		String value = getConfig(configName);
+		if (StringUtil.isNotEmpty(value)) {
+			return StringUtil.convertDouble(value, defaultConfig);
+		}
+		return defaultConfig;
+	}
+
+	/**
+	 * get config item's float value with default by key in config file
+	 *
+	 * @param configName
+	 * @param defaultConfig
+	 * @return
+	 */
+	public static float getFloatConfig(String configName, float defaultConfig) {
+		String value = getConfig(configName);
+		if (StringUtil.isNotEmpty(value)) {
+			return StringUtil.convertFloat(value, defaultConfig);
+		}
+		return defaultConfig;
+	}
+
+	/**
+	 * get config item's int value with default by key in config file
+	 *
+	 * @param configName
+	 * @param defaultConfig
+	 * @return
+	 */
+	public static int getIntConfig(String configName, int defaultConfig) {
+		String value = getConfig(configName);
+		if (StringUtil.isNotEmpty(value)) {
+			return StringUtil.convertInt(value, defaultConfig);
+		}
+		return defaultConfig;
+	}
+
+	/**
+	 * get config item's long value with default by key in config file
+	 *
+	 * @param configName
+	 * @param defaultConfig
+	 * @return
+	 */
+	public static long getLongConfig(String configName, long defaultConfig) {
+		String value = getConfig(configName);
+		if (StringUtil.isNotEmpty(value)) {
+			return StringUtil.convertLong(value, defaultConfig);
+		}
+		return defaultConfig;
+	}
+
+	/**
+	 * read config file to get file content with return
 	 * 读配置文件内容，带换行
 	 *
 	 * @param configFileName
@@ -103,6 +199,7 @@ public class ConfigManager {
 	}
 
 	/**
+	 * read config file to get file content without return
 	 * 读整个配置文件(不带换行)
 	 *
 	 * @param configFileName
@@ -147,25 +244,27 @@ public class ConfigManager {
 	}
 
 	/**
+	 * get config item's string value with default NULL by key in config file
 	 * 查询配置(本地缓存)
 	 *
 	 * @param configName 格式： configFileName.key
 	 *                   <p>
-	 *                   如： league_type_category.league_config
+	 *                   如： user_conf.system_user
 	 *                   <p>
 	 * @return
 	 */
 	public static String getConfig(String configName) {
 		String value = null;
 		if (StringUtil.isNotEmpty(configName)) {
-			String drawerName = null;
+			String configFileName = null;
 			String key = null;
 			String[] params = StringUtil.splitFirst(configName, ".");
 			if (null != params && 2 == params.length) {
-				drawerName = params[0];
+				configFileName = params[0];
 				key = params[1];
-				if (StringUtil.isNotEmpty(drawerName) && StringUtil.isNotEmpty(key) && CollectionUtil.isNotEmpty(configLocalMap)) {
-					Map<String, String> configMap = configLocalMap.get(drawerName);
+				if (StringUtil.isNotEmpty(configFileName) && StringUtil.isNotEmpty(key) && CollectionUtil
+						.isNotEmpty(configLocalMap)) {
+					Map<String, String> configMap = configLocalMap.get(configFileName);
 					if (CollectionUtil.isNotEmpty(configMap)) {
 						value = configMap.get(key);
 					}
@@ -176,64 +275,8 @@ public class ConfigManager {
 	}
 
 	/**
-	 * 查询配置(本地缓存)
-	 *
-	 * @param configName    格式： configFileName.key
-	 *                      <p>
-	 *                      如： league_type_category.league_config
-	 * @param defaultConfig 默认配置
-	 * @return
-	 */
-	public static String getConfigWithDefault(String configName, String defaultConfig) {
-		String value = getConfig(configName);
-		if (!StringUtil.isNotEmpty(value)) {
-			value = defaultConfig;
-		}
-		return value;
-	}
-
-	public static boolean getBooleanConfig(String configName, boolean defaultConfig) {
-		String value = getConfig(configName);
-		if (StringUtil.isNotEmpty(value)) {
-			return StringUtil.convertBoolean(value, defaultConfig);
-		}
-		return defaultConfig;
-	}
-
-	public static double getDouebleConfig(String configName, double defaultConfig) {
-		String value = getConfig(configName);
-		if (StringUtil.isNotEmpty(value)) {
-			return StringUtil.convertDouble(value, defaultConfig);
-		}
-		return defaultConfig;
-	}
-
-	public static float getFloatConfig(String configName, float defaultConfig) {
-		String value = getConfig(configName);
-		if (StringUtil.isNotEmpty(value)) {
-			return StringUtil.convertFloat(value, defaultConfig);
-		}
-		return defaultConfig;
-	}
-
-	public static int getIntConfig(String configName, int defaultConfig) {
-		String value = getConfig(configName);
-		if (StringUtil.isNotEmpty(value)) {
-			return StringUtil.convertInt(value, defaultConfig);
-		}
-		return defaultConfig;
-	}
-
-	public static long getLongConfig(String configName, long defaultConfig) {
-		String value = getConfig(configName);
-		if (StringUtil.isNotEmpty(value)) {
-			return StringUtil.convertLong(value, defaultConfig);
-		}
-		return defaultConfig;
-	}
-
-	/**
-	 * 加载多个配置
+	 * reload local config files
+	 * 加载本地多个配置
 	 *
 	 * @param configFileNames
 	 */
@@ -248,6 +291,11 @@ public class ConfigManager {
 		}
 	}
 
+	/**
+	 * parse config file content into config map
+	 *
+	 * @param configContent
+	 */
 	public static void reloadConfigContent(String configContent) {
 		if (StringUtil.isNotEmpty(configContent)) {
 			String[] lines = StringUtil.split(configContent, "\n");
@@ -309,6 +357,7 @@ public class ConfigManager {
 	}
 
 	/**
+	 * parse config from a line in config file
 	 * 解析一行配置项
 	 *
 	 * @param configFileName
@@ -327,48 +376,25 @@ public class ConfigManager {
 	}
 
 	/**
+	 * update local config item
 	 * 更新某一项配置
-	 *
-	 * @param drawerName
-	 * @param key
-	 * @param value
-	 */
-	private static void updateConfigMap(String drawerName, String key, String value) {
-		if (StringUtil.isNotEmpty(drawerName) && StringUtil.isNotEmpty(key) && StringUtil.isNotEmpty(value)) {
-			Map<String, String> map = configLocalMap.get(drawerName);
-			if (null == map) {
-				map = new HashMap<String, String>();
-				configLocalMap.put(drawerName, map);
-			}
-			map.put(key, value);
-			if (LOG.isDebugEnabled()) {
-				LOG.debug("update config, fileName=" + drawerName + ", key=" + key + ", value=" + value);
-			}
-		}
-	}
-
-	/**
-	 * 更新配置文件某配置顶内容
 	 *
 	 * @param configFileName
 	 * @param key
 	 * @param value
 	 */
-	public static void updateConfig(String configFileName, String key, String value) {
-		updateConfigMap(configFileName, key, value);
-	}
-
-	public static void main(String[] args) {
-		String testConfigFileName1 = "test_config";
-		String testConfigFileName2 = "uu_car";
-		reloadConfigs(testConfigFileName1, testConfigFileName2);
-		for (Map.Entry<String, Map<String, String>> entry : configLocalMap.entrySet()) {
-			System.out.println(entry.getKey());
-			for (Map.Entry<String, String> e : entry.getValue().entrySet()) {
-				System.out.println(e.getKey() + "=" + e.getValue());
+	private static void updateConfigMap(String configFileName, String key, String value) {
+		if (StringUtil.isNotEmpty(configFileName) && StringUtil.isNotEmpty(key) && StringUtil.isNotEmpty(value)) {
+			Map<String, String> map = configLocalMap.get(configFileName);
+			if (null == map) {
+				map = new HashMap<>();
+				configLocalMap.put(configFileName, map);
+			}
+			map.put(key, value);
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("update config, fileName=" + configFileName + ", key=" + key + ", value=" + value);
 			}
 		}
-		System.out.println("uu_car.rambo=" + getConfig("uu_car.rambo"));
-		System.out.println("test_config.key2=" + getConfig("test_config.key2"));
 	}
+
 }

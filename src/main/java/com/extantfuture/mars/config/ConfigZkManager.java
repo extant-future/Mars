@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 /**
  * Config managed by ZooKeeper
  * 通过ZooKeeper管理配置
+ * use ZooKeeper to store config data and watcher to watch the update of config to execute callbacks
  *
  * @author Rambo, <rambo@extantfuture.com>
  * @date 2017/6/16 下午8:36
@@ -30,9 +31,13 @@ public class ConfigZkManager {
 	private static final String PRE_PATH = "/ef-config/";
 	// timeout config for ZooKeeper connection session
 	private static final int SESSION_TIMEOUT = 60000;
+	// server address of ZooKeeper for formal deploy environment
 	private static final String FORMAL_ZK_CONNECT_ADDRESS = "formal.zookeeper.extantfuture.ali:2181";// maybe multi zk node address
+	// server address of ZooKeeper for preview deploy environment
 	private static final String PREVIEW_ZK_CONNECT_ADDRESS = "preview.zookeeper.extantfuture.ali:2181";
+	// server address of ZooKeeper for develop deploy environment
 	private static final String DEV_ZK_CONNECT_ADDRESS = "dev.zookeeper.extantfuture.ali:2181";
+	// client of ZooKeeper
 	private ZooKeeper zooKeeper;
 	// container of callbacks
 	private List<ConfigUpdateCallback> callbackList = new ArrayList<ConfigUpdateCallback>();
