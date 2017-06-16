@@ -8,7 +8,13 @@ import org.apache.log4j.Logger;
 import java.util.*;
 
 /**
+ * manager for gray rule config
  * 灰度配置管理类
+ * <p>
+ * config like:
+ * config_key=allow;10000;%2;%5;	this means allows for default, but id=10000 or id%2==0 or id%5==0 is not allowed
+ * config_key=deny;10000;2000;%2;%5;	this means not allows for default, but id=10000 or id=2000 or id%2==0 or id%5==0 is allowed
+ * </p>
  *
  * @author Rambo, <rambo@extantfuture.com>
  * @date 2017/6/16 下午8:50
@@ -20,33 +26,23 @@ public class GrayConfigManager {
 	private static final Map<String, GrayRule> grayConfigMap = new HashMap<String, GrayRule>();
 
 	/**
+	 * judge whether is allowed by config item and id in long
 	 * 灰度判断是否允许
+	 * most used in our scene, id like user_id
+	 * 最常用的方法，比如判断某个用户是否开启某个功能或逻辑
 	 *
 	 * @param configKey <p>
 	 *                  格式: configFileName.key
 	 * @param id
 	 * @return
 	 */
-	public static boolean isAllowed(String configKey, String id) {
+	public static boolean isAllowed(String configKey, long id) {
 		GrayRule grayConfig = parseConfig(configKey);
 		return isAllowed(grayConfig, id);
 	}
 
 	/**
-	 * 获取白名单
-	 *
-	 * @param configKey
-	 * @return
-	 */
-	public static List<String> getWhiteList(String configKey) {
-		GrayRule grayConfig = parseConfig(configKey);
-		if (Objects.nonNull(grayConfig) && grayConfig.getType().ordinal() == RuleType.DENY.ordinal()) {
-			return grayConfig.getNameList();
-		}
-		return null;
-	}
-
-	/**
+	 * judge whether is allowed by config item and id in long
 	 * 灰度判断是否允许
 	 *
 	 * @param configFileName
@@ -60,6 +56,7 @@ public class GrayConfigManager {
 	}
 
 	/**
+	 * judge whether is allowed by config item and id in string
 	 * 灰度判断是否允许
 	 *
 	 * @param configKey <p>
@@ -67,12 +64,13 @@ public class GrayConfigManager {
 	 * @param id
 	 * @return
 	 */
-	public static boolean isAllowed(String configKey, long id) {
+	public static boolean isAllowed(String configKey, String id) {
 		GrayRule grayConfig = parseConfig(configKey);
 		return isAllowed(grayConfig, id);
 	}
 
 	/**
+	 * judge whether is allowed by config item and id in string
 	 * 灰度判断是否允许
 	 *
 	 * @param configFileName
@@ -83,6 +81,21 @@ public class GrayConfigManager {
 	public static boolean isAllowed(String configFileName, String key, String id) {
 		GrayRule grayConfig = parseConfig(configFileName, key);
 		return isAllowed(grayConfig, id);
+	}
+
+	/**
+	 * fetch white list
+	 * 获取白名单
+	 *
+	 * @param configKey
+	 * @return
+	 */
+	public static List<String> getWhiteList(String configKey) {
+		GrayRule grayConfig = parseConfig(configKey);
+		if (Objects.nonNull(grayConfig) && grayConfig.getType().ordinal() == RuleType.DENY.ordinal()) {
+			return grayConfig.getNameList();
+		}
+		return null;
 	}
 
 	/**
