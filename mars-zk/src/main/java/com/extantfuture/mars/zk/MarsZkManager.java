@@ -1,6 +1,7 @@
 package com.extantfuture.mars.zk;
 
-import com.extantfuture.mars.config.ConfigManager;
+import com.extantfuture.mars.config.MarsConfigManager;
+import com.extantfuture.mars.config.MarsCallback;
 import com.extantfuture.mars.config.gray.GrayConfigManager;
 import com.extantfuture.mars.util.CollectionUtil;
 import com.extantfuture.mars.util.EnvUtil;
@@ -25,9 +26,9 @@ import java.util.regex.Pattern;
  * @author Rambo, <rambo@extantfuture.com>
  * @date 2017/6/16 下午8:36
  */
-public class ConfigZkManager {
+public class MarsZkManager {
 
-	private static final Logger log = Logger.getLogger(ConfigZkManager.class.getSimpleName());
+	private static final Logger log = Logger.getLogger(MarsZkManager.class.getSimpleName());
 	// prefix path for modules in ZooKeeper
 	private static final String PRE_PATH = "/ef-config/";
 	// timeout config for ZooKeeper connection session
@@ -41,7 +42,7 @@ public class ConfigZkManager {
 	// client of ZooKeeper
 	private ZooKeeper zooKeeper;
 	// container of callbacks
-	private List<ConfigUpdateCallback> callbackList = new ArrayList<ConfigUpdateCallback>();
+	private List<MarsCallback> callbackList = new ArrayList<MarsCallback>();
 
 	/**
 	 * init module's config
@@ -69,11 +70,11 @@ public class ConfigZkManager {
 				byte[] value = getClient().getData(zkNodePath, watcher, null);
 				if (CollectionUtil.isNotEmpty(value)) {
 					String configContent = StringUtil.getUTF8String(value);
-					ConfigManager.reloadConfigContent(configContent);
+					MarsConfigManager.reloadConfigContent(configContent);
 					GrayConfigManager.resetGrayConfigCache();
 					// callback
 					if (CollectionUtil.isNotEmpty(callbackList)) {
-						for (ConfigUpdateCallback callback : callbackList) {
+						for (MarsCallback callback : callbackList) {
 							if (null != callback) {
 								try {
 									callback.reloadConfig();
@@ -181,12 +182,12 @@ public class ConfigZkManager {
 		}
 	};
 
-	private static final ConfigZkManager instance = new ConfigZkManager();
+	private static final MarsZkManager instance = new MarsZkManager();
 
-	private ConfigZkManager() {
+	private MarsZkManager() {
 	}
 
-	public static ConfigZkManager getInstance() {
+	public static MarsZkManager getInstance() {
 		return instance;
 	}
 
@@ -196,7 +197,7 @@ public class ConfigZkManager {
 	 *
 	 * @param callback
 	 */
-	public void registerCallback(ConfigUpdateCallback callback) {
+	public void registerCallback(MarsCallback callback) {
 		if (null != callback && !callbackList.contains(callback)) {
 			callbackList.add(callback);
 		}
@@ -208,7 +209,7 @@ public class ConfigZkManager {
 	 *
 	 * @param callback
 	 */
-	public void removeCallback(ConfigUpdateCallback callback) {
+	public void removeCallback(MarsCallback callback) {
 		if (callbackList.contains(callback)) {
 			callbackList.remove(callback);
 		}
@@ -220,7 +221,7 @@ public class ConfigZkManager {
 	 */
 	public void removeAllCallback() {
 		callbackList.clear();
-		callbackList = new ArrayList<ConfigUpdateCallback>();
+		callbackList = new ArrayList<MarsCallback>();
 	}
 
 }

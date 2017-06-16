@@ -1,8 +1,4 @@
-/*
- * Copyright (c) 2017. ExtantFuture Inc. All Rights Reserved
- */
-
-package com.extantfuture.mars.zk;
+package com.extantfuture.mars.config;
 
 /**
  * callback for config update
@@ -11,7 +7,7 @@ package com.extantfuture.mars.zk;
  * @author Rambo, <rambo@extantfuture.com>
  * @date 2017/6/16 下午8:36
  */
-public interface ConfigUpdateCallback {
+public interface MarsCallback {
 
 	void reloadConfig();
 }

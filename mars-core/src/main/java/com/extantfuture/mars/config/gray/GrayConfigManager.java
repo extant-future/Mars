@@ -1,6 +1,6 @@
 package com.extantfuture.mars.config.gray;
 
-import com.extantfuture.mars.config.ConfigManager;
+import com.extantfuture.mars.config.MarsConfigManager;
 import com.extantfuture.mars.util.CollectionUtil;
 import com.extantfuture.mars.util.StringUtil;
 import org.apache.log4j.Logger;
@@ -251,7 +251,7 @@ public class GrayConfigManager {
 				String configKey = StringUtil.concat(configFileName, ".", key);
 				grayConfig = grayConfigMap.get(configKey);
 				if (null == grayConfig) {// 未命中缓存
-					String config = ConfigManager.getConfig(configFileName, key);
+					String config = MarsConfigManager.getConfig(configFileName, key);
 					if (StringUtil.isNotEmpty(config)) {
 						String[] params = StringUtil.splitFirst(config, ";");
 						if (CollectionUtil.isNotEmpty(params)) {

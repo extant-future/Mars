@@ -17,9 +17,9 @@ import java.util.Map;
  * @author Rambo, <rambo@extantfuture.com>
  * @date 2017/6/16 下午8:35
  */
-public class ConfigManager {
+public class MarsConfigManager {
 
-	private static final Logger LOG = Logger.getLogger(ConfigManager.class.getSimpleName());
+	private static final Logger LOG = Logger.getLogger(MarsConfigManager.class.getSimpleName());
 
 	// local memory cache to hold all config items
 	private static final Map<String, Map<String, String>> configLocalMap = new HashMap<String, Map<String, String>>();
@@ -166,7 +166,7 @@ public class ConfigManager {
 			InputStream is = null;
 			BufferedReader br = null;
 			try {
-				is = ConfigManager.class.getClassLoader().getResourceAsStream(configFileName);
+				is = MarsConfigManager.class.getClassLoader().getResourceAsStream(configFileName);
 				br = new BufferedReader(new InputStreamReader(is));
 				String line = null;
 				StringBuilder sb = new StringBuilder();
@@ -211,7 +211,7 @@ public class ConfigManager {
 			InputStream is = null;
 			BufferedReader br = null;
 			try {
-				is = ConfigManager.class.getClassLoader().getResourceAsStream(configFileName);
+				is = MarsConfigManager.class.getClassLoader().getResourceAsStream(configFileName);
 				br = new BufferedReader(new InputStreamReader(is));
 				String line = null;
 				StringBuilder sb = new StringBuilder();
@@ -327,7 +327,7 @@ public class ConfigManager {
 			InputStream is = null;
 			BufferedReader br = null;
 			try {
-				is = ConfigManager.class.getClassLoader().getResourceAsStream(configFileName);
+				is = MarsConfigManager.class.getClassLoader().getResourceAsStream(configFileName);
 				br = new BufferedReader(new InputStreamReader(is));
 				String line = null;
 				do {
