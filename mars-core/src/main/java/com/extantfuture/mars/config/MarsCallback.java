@@ -9,5 +9,15 @@ package com.extantfuture.mars.config;
  */
 public interface MarsCallback {
 
+	/**
+	 * called when config update
+	 */
 	void reloadConfig();
+
+	/**
+	 * the config file to watch
+	 *
+	 * @return
+	 */
+	String watchConfigFileName();
 }

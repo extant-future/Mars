@@ -1,7 +1,7 @@
 package com.extantfuture.mars.zk;
 
-import com.extantfuture.mars.config.MarsConfigManager;
 import com.extantfuture.mars.config.MarsCallback;
+import com.extantfuture.mars.config.MarsConfigManager;
 import com.extantfuture.mars.config.gray.GrayConfigManager;
 import com.extantfuture.mars.util.CollectionUtil;
 import com.extantfuture.mars.util.EnvUtil;
@@ -10,13 +10,10 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
 
 /**
  * Config managed by ZooKeeper
@@ -30,19 +27,21 @@ public class MarsZkManager {
 
 	private static final Logger log = Logger.getLogger(MarsZkManager.class.getSimpleName());
 	// prefix path for modules in ZooKeeper
-	private static final String PRE_PATH = "/ef-config/";
+	private static final String PRE_PATH = "/mars/";
+	private static final String PATH_SEP = "/";
 	// timeout config for ZooKeeper connection session
 	private static final int SESSION_TIMEOUT = 60000;
 	// server address of ZooKeeper for formal deploy environment
-	private static final String FORMAL_ZK_CONNECT_ADDRESS = "formal.zookeeper.extantfuture.ali:2181";// maybe multi zk node address
+	private static final String FORMAL_ZK_CONNECT_ADDRESS = "formal.zookeeper.mars:2181";// maybe multi zk node address
 	// server address of ZooKeeper for preview deploy environment
-	private static final String PREVIEW_ZK_CONNECT_ADDRESS = "preview.zookeeper.extantfuture.ali:2181";
+	private static final String PREVIEW_ZK_CONNECT_ADDRESS = "preview.zookeeper.mars:2181";
 	// server address of ZooKeeper for develop deploy environment
-	private static final String DEV_ZK_CONNECT_ADDRESS = "dev.zookeeper.extantfuture.ali:2181";
+	private static final String DEV_ZK_CONNECT_ADDRESS = "dev.zookeeper.mars:2181";
 	// client of ZooKeeper
 	private ZooKeeper zooKeeper;
 	// container of callbacks
-	private List<MarsCallback> callbackList = new ArrayList<MarsCallback>();
+	//	private List<MarsCallback> callbackList = new ArrayList<>();
+	private Map<String, List<MarsCallback>> fileNameCallbackListMap = new HashMap<>();
 
 	/**
 	 * init module's config
@@ -51,11 +50,11 @@ public class MarsZkManager {
 	 *
 	 * @param moduleName
 	 */
-	public void init(String moduleName) {
-		String moduleZkRootPath = getZkRootPath(moduleName);
+	public void init(String moduleName) throws InterruptedException, IOException, KeeperException {
+		final String moduleZkRootPath = getZkRootPath(moduleName);
 		// 初始时获取一次配置内容更新到内存缓存
-		updateAndWatchConfigNode(moduleZkRootPath);
-		log.info("init moduleName=" + moduleName + ", moduleZkRootPath=" + moduleZkRootPath);
+		reloadAndWatchConfigNode(moduleZkRootPath, null);
+		log.info("init end, moduleName=" + moduleName + ", moduleZkRootPath=" + moduleZkRootPath);
 	}
 
 	/**
@@ -63,58 +62,90 @@ public class MarsZkManager {
 	 * 获取某个zk节点下的配置数据更新并执行回调逻辑
 	 *
 	 * @param zkNodePath
+	 * @param zkSubNodePath
 	 */
-	private void updateAndWatchConfigNode(String zkNodePath) {
+	private void reloadAndWatchConfigNode(final String zkNodePath, final String zkSubNodePath)
+			throws IOException, KeeperException, InterruptedException {
+		long startTs = System.nanoTime();
 		try {
 			if (StringUtil.isNotEmpty(zkNodePath)) {
-				byte[] value = getClient().getData(zkNodePath, watcher, null);
-				if (CollectionUtil.isNotEmpty(value)) {
-					String configContent = StringUtil.getUTF8String(value);
-					MarsConfigManager.reloadConfigContent(configContent);
-					GrayConfigManager.resetGrayConfigCache();
-					// callback
-					if (CollectionUtil.isNotEmpty(callbackList)) {
-						for (MarsCallback callback : callbackList) {
-							if (null != callback) {
-								try {
-									callback.reloadConfig();
-								} catch (Exception e) {
-									log.error("updateAndWatchConfigNode callback.reloadConfig exception, callback=" + callback, e);
-								}
+				final List<String> configFileNameList = getClient().getChildren(zkNodePath, event -> {
+					if (null != event && null != event.getType()) {
+						if (Watcher.Event.EventType.NodeChildrenChanged.getIntValue() == event.getType().getIntValue()) {
+							// add new config file or delete config file
+							try {
+								reloadAndWatchConfigNode(zkNodePath, event.getPath());
+							} catch (Throwable e) {
+								log.error("reloadAndWatchConfigNode error when NodeChildrenChanged, event=" + event, e);
+							}
+						}
+					}
+				});
+				if (StringUtil.isNotEmpty(zkSubNodePath)) {
+					Stat stat = getClient().exists(zkSubNodePath, false);
+					if (null == stat) {
+						// deleted, this almost not happen in Production TODO remove config keys in memory
+					} else {
+						// new config file
+						byte[] value = getClient().getData(zkSubNodePath, watcher, null);
+						String configFileName = StringUtil.removeAll(zkSubNodePath, zkNodePath);
+						reloadByConfigFile(configFileName, value);
+					}
+				} else {
+					if (CollectionUtil.isNotEmpty(configFileNameList)) {
+						for (String configFileName : configFileNameList) {
+							if (StringUtil.isNotEmpty(configFileName)) {
+								String childrenPath = StringUtil.concat(zkNodePath, PATH_SEP, configFileName);
+								byte[] value = getClient().getData(childrenPath, watcher, null);
+								reloadByConfigFile(configFileName, value);
 							}
 						}
 					}
 				}
 			}
 		} catch (Exception e) {
-			log.error("updateAndWatchConfigNode exception, path=" + zkNodePath, e);
+			log.error("reloadAndWatchConfigNode exception, zkNodePath=" + zkNodePath + ", zkSubNodePath=" + zkSubNodePath, e);
+			throw e;
+		} finally {
+			log.info(StringUtil.concat("reloadAndWatchConfigNode zkNodePath=", zkNodePath, ", zkSubNodePath=", zkSubNodePath,
+									   ", cost=", System.nanoTime() - startTs, "ns"));
+		}
+	}
+
+	private void reloadConfigFileNode(String zkConfigFileNodePath) throws IOException, KeeperException, InterruptedException {
+		if (StringUtil.isNotEmpty(zkConfigFileNodePath)) {
+			String[] array = StringUtil.split(zkConfigFileNodePath, PATH_SEP);
+			if (CollectionUtil.isNotEmpty(array)) {
+				String configFileName = array[array.length - 1];
+				byte[] value = getClient().getData(zkConfigFileNodePath, watcher, null);
+				reloadByConfigFile(configFileName, value);
+			}
 		}
 	}
 
 	/**
-	 * update config data to zk node
-	 * 更新某个配置文件的一个配置项到zk中
+	 * reload config from file and handle callback
 	 *
-	 * @param moduleName
-	 * @param configFilename
-	 * @param key
-	 * @param value
+	 * @param configFileName
+	 * @param fileContent
 	 */
-	public void updateAndWatchConfigNode(String moduleName, String configFilename, String key, String value)
-			throws IOException, KeeperException, InterruptedException {
-		String zkNodePath = getZkRootPath(moduleName);
-		byte[] bytes = getClient().getData(zkNodePath, watcher, null);
-		if (CollectionUtil.isNotEmpty(bytes)) {
-			String content = StringUtil.getUTF8String(bytes);
-			Pattern pattern = Pattern.compile("[" + moduleName + "]");
-			Matcher matcher = pattern.matcher(content);
-			if (matcher.find()) {
-				int start = matcher.end();
-				pattern = Pattern.compile(key + "=.+\n");
-				matcher = pattern.matcher(content);
-				if (matcher.find(start)) {
-					String newContent = matcher.replaceFirst(StringUtil.concat(key, "=", value, "\n"));
-					getClient().setData(zkNodePath, StringUtil.getUTF8Bytes(newContent), -1);
+	private void reloadByConfigFile(String configFileName, byte[] fileContent) {
+		if (CollectionUtil.isNotEmpty(fileContent)) {
+			String configContent = StringUtil.getUTF8String(fileContent);
+			MarsConfigManager.reloadConfigContent(configContent);
+			GrayConfigManager.resetGrayConfigCache();
+
+			log.info(StringUtil.concat("reloadByConfigFile configFileName=", configFileName));
+
+			if (StringUtil.isNotEmpty(configFileName)) {
+				List<MarsCallback> callbackList = fileNameCallbackListMap.get(configFileName);
+				if (CollectionUtil.isNotEmpty(callbackList)) {
+					for (int i = 0; i < callbackList.size(); i++) {
+						MarsCallback callback = callbackList.get(i);
+						if (null != callback) {
+							callback.reloadConfig();
+						}
+					}
 				}
 			}
 		}
@@ -175,9 +206,13 @@ public class MarsZkManager {
 	 */
 	private Watcher watcher = event -> {
 		if (null != event && null != event.getType()) {
-			if (Watcher.Event.EventType.NodeDataChanged.getIntValue() == event.getType().getIntValue()
-					|| Watcher.Event.EventType.NodeCreated.getIntValue() == event.getType().getIntValue()) {
-				updateAndWatchConfigNode(event.getPath());
+			if (Watcher.Event.EventType.NodeDataChanged.getIntValue() == event.getType().getIntValue()) {
+				// 配置文件节点变更
+				try {
+					reloadConfigFileNode(event.getPath());
+				} catch (Throwable e) {
+					log.error("config file watcher reload error, event=" + event, e);
+				}
 			}
 		}
 	};
@@ -198,8 +233,16 @@ public class MarsZkManager {
 	 * @param callback
 	 */
 	public void registerCallback(MarsCallback callback) {
-		if (null != callback && !callbackList.contains(callback)) {
-			callbackList.add(callback);
+		if (null != callback && StringUtil.isNotEmpty(callback.watchConfigFileName())) {
+			String configFileName = callback.watchConfigFileName();
+			List<MarsCallback> callbackList = fileNameCallbackListMap.get(configFileName);
+			if (null == callbackList) {
+				callbackList = new ArrayList<>();
+				fileNameCallbackListMap.put(configFileName, callbackList);
+			}
+			if (!callbackList.contains(callback)) {
+				callbackList.add(callback);
+			}
 		}
 	}
 
@@ -210,8 +253,14 @@ public class MarsZkManager {
 	 * @param callback
 	 */
 	public void removeCallback(MarsCallback callback) {
-		if (callbackList.contains(callback)) {
-			callbackList.remove(callback);
+		if (null != callback) {
+			String configFileName = callback.watchConfigFileName();
+			if (StringUtil.isNotEmpty(configFileName)) {
+				List<MarsCallback> callbackList = fileNameCallbackListMap.get(configFileName);
+				if (CollectionUtil.isNotEmpty(callbackList)) {
+					callbackList.remove(callback);
+				}
+			}
 		}
 	}
 
@@ -220,8 +269,8 @@ public class MarsZkManager {
 	 * 移除所有配置更新回调
 	 */
 	public void removeAllCallback() {
-		callbackList.clear();
-		callbackList = new ArrayList<MarsCallback>();
+		fileNameCallbackListMap.clear();
+		fileNameCallbackListMap = new HashMap<>();
 	}
 
 }
